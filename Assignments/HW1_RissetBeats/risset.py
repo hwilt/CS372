@@ -36,6 +36,8 @@ def load_tune(filename, tune_length):
     times = np.zeros(tune.shape[0])
     times[1::] = np.cumsum(tune[0:-1, 1])
     times = times*tune_length/np.sum(tune[:, 1])
+    times = times[np.isnan(ps)==0]
+    ps = ps[np.isnan(ps)==0]
     return ps, times
 
 def do_risset_slow(filename, tune_length, freqs_per_note, sr):
@@ -57,9 +59,6 @@ def do_risset_slow(filename, tune_length, freqs_per_note, sr):
     ts = np.arange(int(tune_length*sr))/sr
     y = np.zeros_like(ts)
     ## TODO: Fill this in
-    for i in range(len(ps)):
-        for j in range(freqs_per_note):
-            y += np.sin(2*np.pi*get_note_freq(ps[i])*(j+1)*ts)
     return y
 
 def do_risset_fast(filename, tune_length, freqs_per_note, sr):
@@ -81,7 +80,4 @@ def do_risset_fast(filename, tune_length, freqs_per_note, sr):
     ts = np.arange(int(tune_length*sr))/sr
     y = np.zeros_like(ts)
     ## TODO: Fill this in
-    
     return y
-
-
