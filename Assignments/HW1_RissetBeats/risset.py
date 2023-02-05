@@ -61,8 +61,11 @@ def do_risset_slow(filename, tune_length, freqs_per_note, sr):
     ## TODO: Fill this in
     for p, time in zip(ps, times):
         freq = get_note_freq(p)
-        freqs = np.linspace(freq-((1/tune_length)*freqs_per_note), freq+((1/tune_length)* freqs_per_note), freqs_per_note)
+        diff = (1/tune_length)*freqs_per_note
         
+        #fs = np.linspace(freq-diff, freq+diff, num=freqs_per_note)
+        freqs = np.arange(freq-diff/2, freq+diff/2, 1/tune_length)
+
         for f in freqs:
             u = ts - time
             y += np.sin(2*np.pi*f*u) + np.cos(2*np.pi*f*u)
@@ -88,6 +91,24 @@ def do_risset_fast(filename, tune_length, freqs_per_note, sr):
     ts = np.arange(int(tune_length*sr))/sr
     y = np.zeros_like(ts)
     ## TODO: Fill this in
+    sin_amps = {}
+    cos_amps = {}
+    for p, time in zip(ps, times):
+        freq = get_note_freq(p)
+        diff = (1/tune_length)*freqs_per_note
+        freqs = np.arange(freq-diff/2, freq+diff/2, 1/tune_length)
+        for f in freqs:
+            if f not in sin_amps:
+                sin_amps[f] = np.sin(2*np.pi*f*time)
+                cos_amps[f] = np.cos(2*np.pi*f*time)
+            
+            sin_amps[f] += np.sin(2*np.pi*f*time)
+            cos_amps[f] += np.cos(2*np.pi*f*time)
+    
+    for f in sin_amps:
+        sinAmp = sin_amps[f]
+        cosAmp = cos_amps[f]
+        y += sinAmp*np.sin(2*np.pi*f*ts) + cosAmp*np.cos(2*np.pi*f*ts)
     return y
 
 
