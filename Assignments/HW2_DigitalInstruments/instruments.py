@@ -22,6 +22,10 @@ def karplus_strong_note(sr, note, duration, decay):
     N = int(duration*sr)
     y = np.zeros(N)
     ## TODO: Fill this in
+    T = int(sr/(440*2**(note/12)))
+    y[:T] = np.random.randn(T)
+    for i in range(T, N):
+        y[i] = decay * (y[i - T] + y[i - T + 1])/2
     return y
 
 def fm_synth_note(sr, note, duration, ratio=2, I=2, 
@@ -53,6 +57,12 @@ def fm_synth_note(sr, note, duration, ratio=2, I=2,
     N = int(duration*sr)
     y = np.zeros(N)
     ## TODO: Fill this in
+    # y(t) = A(t)cos(2pi*fc*t + I(t)sin(2pi*fm*t))
+    fc = 440*2**(note/12)
+    fm = ratio*fc
+    t = np.arange(N)/sr
+    y = amplitude(N, sr)*np.cos(2*np.pi*fc*t + (envelope(N,sr)*I)*np.sin(2*np.pi*fm*t))
+
     return y
 
 def exp_env(N, sr, mu=3):
@@ -338,4 +348,7 @@ def make_tune(filename, sixteenth_len, sr, note_fn):
     notes = tune[:, 0]
     durations = sixteenth_len*tune[:, 1]
     ## TODO: Fill this in
-    return None # This is a dummy value
+    y = np.array([])
+    for note, duration in zip(notes, durations):
+        y = np.concatenate((y, note_fn(sr, note, duration)))
+    return y
