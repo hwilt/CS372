@@ -62,7 +62,6 @@ def fm_synth_note(sr, note, duration, ratio=2, I=2,
     fm = ratio*fc
     t = np.arange(N)/sr
     y = amplitude(N, sr)*np.cos(2*np.pi*fc*t + (envelope(N,sr)*I)*np.sin(2*np.pi*fm*t))
-
     return y
 
 def exp_env(N, sr, mu=3):
@@ -132,7 +131,15 @@ def brass_env(N, sr):
     ndarray(N): Envelope samples
     """
     ## TODO: Fill this in
-    return np.zeros(N)
+    # Attack = 0.1s
+    # Decay = 0.1s
+    # Sustain = All of the envelope up to the release, which is a very gradual decay
+    # Release = the last 0.1s
+    attack = np.linspace(0, int(0.1*sr), num=int(0.1*N))
+    decay = np.linspace(int(0.1*sr), int(0.2*sr), num=int(0.1*N))
+    sustain = np.linspace(int(0.2*sr), sr-int(0.1*sr), num=N-int(0.1*N))
+    release = np.linspace(sr-int(0.1*sr), sr, num=N-int(0.1*N))
+    return np.concatenate((attack, decay, sustain, release))
 
 
 def dirty_bass_env(N, sr):
@@ -198,7 +205,7 @@ def fm_electric_guitar_note(sr, note, duration, mu=3):
     ------
     ndarray(N): Audio samples for this note
     """
-    return None # This is a dummy value
+    return np.sign(fm_plucked_string_note(sr, note, duration, mu))
 
 def fm_brass_note(sr, note, duration):
     """
@@ -217,7 +224,10 @@ def fm_brass_note(sr, note, duration):
     ndarray(N): Audio samples for this note
     """
     ## TODO: Fill this in
-    return None # This is a dummy value
+    envelope = lambda N, sr: brass_env(N, sr)
+    return fm_synth_note(sr, note, duration,
+                ratio = 1, I = 10, envelope = envelope,
+                amplitude = envelope)
 
 
 def fm_bell_note(sr, note, duration):
@@ -237,7 +247,10 @@ def fm_bell_note(sr, note, duration):
     ndarray(N): Audio samples for this note
     """
     ## TODO: Fill this in
-    return None # This is a dummy value
+    envelope = lambda N, sr: exp_env(N, sr, 0.8)
+    return fm_synth_note(sr, note, duration,
+                ratio = 1.4, I = 2, envelope = envelope,
+                amplitude = envelope)
 
 
 def fm_drum_sound(sr, note, duration, fixed_note = -14):
