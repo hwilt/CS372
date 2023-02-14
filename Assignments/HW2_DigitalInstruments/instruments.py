@@ -97,7 +97,10 @@ def drum_like_env(N, sr):
     ndarray(N): Envelope samples
     """
     ## TODO: Fill this in
-    return np.zeros(N)
+    # consider sampling a horizontally shifted version of the function 
+    # t^2*e^-(pi*t)
+    t = np.arange(N)/sr
+    return t**2*np.exp(-np.pi*t)
 
 def wood_drum_env(N, sr):
     """
@@ -153,7 +156,7 @@ def brass_env(N, sr):
         release = np.linspace((0.2*sr), N, 4)
     else:
         sustain = np.linspace((0.2*sr), (total_seconds-0.1)*sr, 4)
-        release = linspace((0.2*sr), N, 4)
+        release = np.linspace((0.2*sr), N, 4)
     return np.concatenate((attack, decay, sustain, release))
 
 
