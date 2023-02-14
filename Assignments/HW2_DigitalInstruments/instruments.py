@@ -135,10 +135,25 @@ def brass_env(N, sr):
     # Decay = 0.1s
     # Sustain = All of the envelope up to the release, which is a very gradual decay
     # Release = the last 0.1s
-    attack = np.linspace(0, int(0.1*sr), num=int(0.1*N))
-    decay = np.linspace(int(0.1*sr), int(0.2*sr), num=int(0.1*N))
-    sustain = np.linspace(int(0.2*sr), sr-int(0.1*sr), num=N-int(0.1*N))
-    release = np.linspace(sr-int(0.1*sr), sr, num=N-int(0.1*N))
+    # if the note is shorter than 0.3 seconds, completely cut out the sustain, then, the as much of the release as you need.  If it's shorter than 0.2 seconds, then the release is also completely gone, and start cutting the decay.  If it's shorter than 0.1 seconds, then cut the attack.
+    total_seconds = N/sr
+    attack = np.zeros(N)
+    decay = np.zeros(N)
+    sustain = np.zeros(N)
+    release = np.zeros(N)
+    if total_seconds < 0.1:
+        attack = np.linspace(0, N, 3)
+    else:
+        attack = np.linspace(0, (0.1*sr), 3)
+    if total_seconds < 0.2:
+        decay = np.linspace((0.1*sr), N, 4)
+    else:
+        decay = np.linspace((0.1*sr), (0.2*sr), 4)
+    if total_seconds < 0.3:
+        release = np.linspace((0.2*sr), N, 4)
+    else:
+        sustain = np.linspace((0.2*sr), (total_seconds-0.1)*sr, 4)
+        release = linspace((0.2*sr), N, 4)
     return np.concatenate((attack, decay, sustain, release))
 
 
