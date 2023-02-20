@@ -82,7 +82,7 @@ def exp_env(N, sr, mu=3):
     """
     return np.exp(-mu*np.arange(N)/sr)
 
-def drum_like_env(N, sr):
+def drum_like_env(N, sr, mu=3):
     """
     Make a drum-like envelope, according to Chowning's paper
     Parameters
@@ -98,9 +98,9 @@ def drum_like_env(N, sr):
     """
     ## TODO: Fill this in
     # consider sampling a horizontally shifted version of the function 
-    # t^2*e^-(pi*t)
+    # t^(2)*e^(-(mu*t))
     t = np.arange(N)/sr
-    return t**2*np.exp(-np.pi*t)
+    return (t**2)*np.exp(-mu*t)
 
 def wood_drum_env(N, sr):
     """
@@ -117,7 +117,15 @@ def wood_drum_env(N, sr):
     ndarray(N): Envelope samples
     """
     ## TODO: Fill this in
-    return np.zeros(N)
+    # starts at 1 and decays to 0 in 0.025 seconds
+    # then, it stays at 0 for duration
+
+    # if the note is shorter than 0.025 seconds, then go to 0 at the end of the note
+    total_seconds = N/sr
+    if total_seconds < 0.025:
+        return np.linspace(1, 0, N)
+    else:
+        return np.concatenate((np.linspace(1, 0, int(0.025*sr)), np.zeros(N-int(0.025*sr))))
 
 def brass_env(N, sr):
     """
@@ -134,30 +142,16 @@ def brass_env(N, sr):
     ndarray(N): Envelope samples
     """
     ## TODO: Fill this in
-    # Attack = 0.1s
-    # Decay = 0.1s
-    # Sustain = All of the envelope up to the release, which is a very gradual decay
-    # Release = the last 0.1s
-    # if the note is shorter than 0.3 seconds, completely cut out the sustain, then, the as much of the release as you need.  If it's shorter than 0.2 seconds, then the release is also completely gone, and start cutting the decay.  If it's shorter than 0.1 seconds, then cut the attack.
     total_seconds = N/sr
-    attack = np.zeros(N)
-    decay = np.zeros(N)
-    sustain = np.zeros(N)
-    release = np.zeros(N)
     if total_seconds < 0.1:
-        attack = np.linspace(0, N, 3)
+        return np.linspace(0, 1, N)
+    elif total_seconds < 0.2:
+        return np.concatenate((np.linspace(0, 1, int(0.1*sr)), np.linspace(1,0.75, int((total_seconds-0.1)*sr))))
+    elif total_seconds < 0.3:
+        return np.concatenate((np.linspace(0, 1, int(0.1*sr)), np.linspace(1,0.75, int(0.1*sr)), np.linspace(0.75, 0, int((total_seconds-0.2)*sr)+1)))
     else:
-        attack = np.linspace(0, (0.1*sr), 3)
-    if total_seconds < 0.2:
-        decay = np.linspace((0.1*sr), N, 4)
-    else:
-        decay = np.linspace((0.1*sr), (0.2*sr), 4)
-    if total_seconds < 0.3:
-        release = np.linspace((0.2*sr), N, 4)
-    else:
-        sustain = np.linspace((0.2*sr), (total_seconds-0.1)*sr, 4)
-        release = np.linspace((0.2*sr), N, 4)
-    return np.concatenate((attack, decay, sustain, release))
+        return np.concatenate((np.linspace(0, 1, int(0.1*sr)), np.linspace(1,0.75, int(0.1*sr)), np.linspace(0.75, 0.7, int((total_seconds-0.3)*sr)), np.linspace(0.7, 0, int(0.1*sr))))        
+
 
 
 def dirty_bass_env(N, sr):
@@ -290,7 +284,10 @@ def fm_drum_sound(sr, note, duration, fixed_note = -14):
     ndarray(N): Audio samples for this drum hit
     """
     ## TODO: Fill this in
-    return None # This is a dummy value
+    envelope = lambda N, sr: drum_like_env(N, sr)
+    return fm_synth_note(sr, fixed_note, duration,
+                ratio = 1.4, I = 2, envelope = envelope,
+                amplitude = envelope)
 
 def fm_wood_drum_sound(sr, note, duration, fixed_note=-14):
     """
@@ -311,7 +308,11 @@ def fm_wood_drum_sound(sr, note, duration, fixed_note=-14):
     ndarray(N): Audio samples for this drum hit
     """
     ## TODO: Fill this in
-    return None # This is a dummy value
+    envelope = lambda N, sr: wood_drum_env(N, sr)
+    return fm_synth_note(sr, fixed_note, duration,
+                ratio = 1.4, I = 10, envelope = envelope,
+                amplitude = envelope)
+    
 
 def snare_drum_sound(sr, note, duration):
     """
@@ -332,7 +333,10 @@ def snare_drum_sound(sr, note, duration):
     ndarray(N): Audio samples for this drum hit
     """
     ## TODO: Fill this in
-    return None # This is a dummy value
+    # Use the np.random.rand method to fill all of the samples with noise, 
+    # then multiply them with an exponential envelope decaying quickly with μ = 20
+    envelope = lambda N, sr: exp_env(N, sr, 20)
+    return np.random.rand(int(duration*sr))*envelope(int(duration*sr), sr)
 
 def fm_dirty_bass_note(sr, note, duration):
     """
@@ -352,7 +356,10 @@ def fm_dirty_bass_note(sr, note, duration):
     ndarray(N): Audio samples for this drum hit
     """
     ## TODO: Fill this in
-    return None # This is a dummy value
+    envelope = lambda N, sr: dirty_bass_env(N, sr)
+    return fm_synth_note(sr, note, duration,
+                ratio = 1, I = 18, envelope = envelope,
+                amplitude = envelope)
 
 def make_tune(filename, sixteenth_len, sr, note_fn):
     """
