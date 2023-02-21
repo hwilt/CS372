@@ -82,7 +82,7 @@ def exp_env(N, sr, mu=3):
     """
     return np.exp(-mu*np.arange(N)/sr)
 
-def drum_like_env(N, sr, mu=3):
+def drum_like_env(N, sr):
     """
     Make a drum-like envelope, according to Chowning's paper
     Parameters
@@ -100,7 +100,9 @@ def drum_like_env(N, sr, mu=3):
     # consider sampling a horizontally shifted version of the function 
     # t^(2)*e^(-(mu*t))
     t = np.arange(N)/sr
-    return (t**2)*np.exp(-mu*t)
+    mu = 25
+    s = 0.05
+    return ((t+s)**2)*np.exp(-mu*(t+s))
 
 def wood_drum_env(N, sr):
     """
@@ -170,7 +172,14 @@ def dirty_bass_env(N, sr):
     ndarray(N): Envelope samples
     """
     ## TODO: Fill this in
-    return np.zeros(N)
+    # exponential decay from 1 to 0 in 0.25 seconds
+    # exponential growth from 0 to 1 in 0.25 seconds
+
+    decay = np.exp(np.linspace(0, -1, int(0.25*sr)))
+    growth = np.exp(np.linspace(-1, 0, int(0.25*sr)))
+
+    return np.concatenate((decay, growth)) 
+
 
 def fm_plucked_string_note(sr, note, duration, mu=3):
     """
