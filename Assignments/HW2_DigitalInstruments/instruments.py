@@ -57,11 +57,10 @@ def fm_synth_note(sr, note, duration, ratio=2, I=2,
     N = int(duration*sr)
     y = np.zeros(N)
     ## TODO: Fill this in
-    # y(t) = A(t)cos(2pi*fc*t + I(t)sin(2pi*fm*t))
     fc = 440*2**(note/12)
     fm = ratio*fc
     t = np.arange(N)/sr
-    y = amplitude(N, sr)*np.cos(2*np.pi*fc*t + (envelope(N,sr)*I)*np.sin(2*np.pi*fm*t))
+    y = amplitude(N, sr)*np.cos(2*np.pi*fc*t + (envelope(N,sr)*I)*np.cos(2*np.pi*fm*t))
     return y
 
 def exp_env(N, sr, mu=3):
@@ -102,7 +101,7 @@ def drum_like_env(N, sr):
     t = np.arange(N)/sr
     mu = 25
     s = 0.05
-    return ((t+s)**2)*np.exp(-mu*(t+s))
+    return ((t+s)**2)*np.exp(-mu*(t+s))*230
 
 def wood_drum_env(N, sr):
     """
@@ -144,16 +143,53 @@ def brass_env(N, sr):
     ndarray(N): Envelope samples
     """
     ## TODO: Fill this in
-    total_seconds = N/sr
-    if total_seconds < 0.1:
-        return np.linspace(0, 1, N)
-    elif total_seconds < 0.2:
-        return np.concatenate((np.linspace(0, 1, int(0.1*sr)), np.linspace(1,0.75, int((total_seconds-0.1)*sr))))
-    elif total_seconds < 0.3:
-        return np.concatenate((np.linspace(0, 1, int(0.1*sr)), np.linspace(1,0.75, int(0.1*sr)), np.linspace(0.75, 0, int((total_seconds-0.2)*sr)+1)))
-    else:
-        return np.concatenate((np.linspace(0, 1, int(0.1*sr)), np.linspace(1,0.75, int(0.1*sr)), np.linspace(0.75, 0.7, int((total_seconds-0.3)*sr)), np.linspace(0.7, 0, int(0.1*sr))))        
+    total_seconds = N/44100
+    attack_time = int(0.1*N) # 0.1*N
+    sustain_time = N - 3 * attack_time
+    decay_time = int(0.1*N)
+    release_time = N - int(0.9*N)
+    
+    #attack = np.linspace(0,1, attack_time)
+    #decay = np.linspace(1,0.75, decay_time)
+    #sustain = np.linspace(0.75, 0.7, sustain_time)
+    #release = np.linspace(0.7,0, release_time)
+    
+    attack = np.array([])
+    decay = np.array([])
+    sustain = np.array([])
+    release = np.array([])
 
+    ## this is for the full one second notes
+    if attack_time + sustain_time + decay_time + release_time >= N:
+        attack = np.linspace(0, 1, attack_time)
+        decay = np.linspace(1,0.75, decay_time)
+        sustain = np.linspace(0.75, 0.7, sustain_time)
+        release = np.linspace(0.7, 0, release_time)
+        return np.concatenate((attack, decay, sustain, release))
+    
+    
+    # there is only time for attack
+    if total_seconds <= 0.1:
+        return np.linspace(0, 1, N)
+    else:
+        attack = np.linspace(0, 1, attack_time)
+    
+    # time for attack and decay
+    
+    if total_seconds <= 0.2:
+        decay = np.linspace(1,0, N - attack_time)
+        return np.concatenate((attack, decay))
+    else:
+        decay = np.linspace(1,0.75, decay_time)
+        
+    # time for attack, decay, and release
+    if total_seconds <= 0.3:
+        release = np.linspace(0.75, 0, N - 2*attack_time)
+        return np.concatenate((attack, decay, release))
+    else:
+        sustain = np.linspace(0.75, 0.70, sustain_time)
+        release = np.linspace(0.70, 0, attack_time)
+        return np.concatenate((attack, decay, sustain, release))
 
 
 def dirty_bass_env(N, sr):
@@ -172,12 +208,8 @@ def dirty_bass_env(N, sr):
     ndarray(N): Envelope samples
     """
     ## TODO: Fill this in
-    # exponential decay from 1 to 0 in 0.25 seconds
-    # exponential growth from 0 to 1 in 0.25 seconds
-
-    decay = np.exp(np.linspace(0, -1, int(0.25*sr)))
-    growth = np.exp(np.linspace(-1, 0, int(0.25*sr)))
-
+    decay = np.exp(np.linspace(0, -2*np.e, int(N/2)))
+    growth = -1*decay+1
     return np.concatenate((decay, growth)) 
 
 
