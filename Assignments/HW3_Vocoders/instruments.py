@@ -145,9 +145,9 @@ def brass_env(N, sr):
     ## TODO: Fill this in
     total_seconds = N/44100
     attack_time = int(0.1*N) # 0.1*N
-    sustain_time = N - 3 * attack_time
+    sustain_time = int(N - 3 * attack_time)
     decay_time = int(0.1*N)
-    release_time = N - int(0.9*N)
+    release_time = int(N - (0.9*N))
     
     #attack = np.linspace(0,1, attack_time)
     #decay = np.linspace(1,0.75, decay_time)
@@ -431,5 +431,6 @@ def make_tune(filename, sixteenth_len, sr, note_fn):
     for note, duration in zip(notes, durations):
         if np.isnan(note):
             y = np.concatenate((y, np.zeros(int(duration*sr))))
-        y = np.concatenate((y, note_fn(sr, note, duration)))
+        else:
+            y = np.concatenate((y, note_fn(sr, note, duration)))
     return y
