@@ -328,6 +328,27 @@ def im2sound(impath, w, h, win_fn, n_iters):
     #plt.savefig("S.png", bbox_inches='tight')
     return griffin_lim(S, w, h, win_fn, n_iters)
 
+def amplitude_to_db(S, amin=1e-10, ref=1):
+    """
+    Convert an amplitude spectrogram to be expressed in decibels
+    
+    Parameters
+    ----------
+    S: ndarray(win, T)
+        Amplitude spectrogram
+    amin: float
+        Minimum accepted value for the spectrogram
+    ref: int
+        0dB reference amplitude
+        
+    Returns
+    -------
+    ndarray(win, T)
+        The dB spectrogram
+    """
+    SLog = 20.0*np.log10(np.maximum(amin, S))
+    SLog -= 20.0*np.log10(np.maximum(amin, ref))
+    return SLog
 
 def make_beepy_tune(x, w, h, win_fn, time_win, freq_win, max_freq, n_iters):
     """ 
@@ -360,19 +381,26 @@ def make_beepy_tune(x, w, h, win_fn, time_win, freq_win, max_freq, n_iters):
     y: ndarray(N)
         Beepy tune
     """
-    S = np.abs(stft(x,w,h,win_fn))
-    orig_shape = S.shape[0]
-    S = S[0:max_freq, :]
-    Maxes = maximum_filter(S, size=(time_win*2+1, freq_win*2+1))
-    S = np.zeros(S.shape)
-    S[Maxes == S] = 1
-    S = S[0:orig_shape, :]
+    S = stft(x, w, h, win_fn)
+    B = np.zeros_like(S)
+    S = np.abs(S[:max_freq, :])
+    #S = np.abs(S[max_freq:, :])
 
-    
-    return griffin_lim(S, w, h, win_fn, n_iters)
+    # getting the max of the spectrogram
+    Maxes = maximum_filter(S, size=(2*freq_win+1, 2*time_win+1))
+    #img = amplitude_to_db(Maxes)
+    #plt.figure()
+    #plt.imshow(img, cmap='magma')
 
+    # turning the maxes into a binary spectrogram
+    for i in range(S.shape[0]):
+        for j in range(S.shape[1]):
+            if S[i, j] == Maxes[i, j]:
+                B[i, j] = 1
+                B[-i, j] = B[i, j]
 
-    
+    return griffin_lim(B, w, h, win_fn, n_iters)
+
 
 def pitch_shift(x, shift, w, h, win_fn, n_iters):
     """
@@ -404,6 +432,12 @@ def pitch_shift(x, shift, w, h, win_fn, n_iters):
     ## TODO: Fill this in to create a spectrogram S2
     ## which is a frequency warped version of S, and invert this
     ## with griffin lim to get the pitch shifted audio
+    freqs = np.arange(w)
+    shifts = np.arange(S.shape[1])
+    f = interp2d(shifts, freqs, S, kind = 'linear')
+    new_shifts = np.linspace(0, shifts[-1], len(shifts)+shift)
+    S2 = f(new_shifts, freqs)
+    x = griffin_lim(S2, w, h, win_fn, n_iters)
 
     N = S.shape[0]
     plt.figure(figsize=(18, 6))
