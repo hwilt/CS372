@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import skimage
 from scipy.io import wavfile
 from scipy.signal import fftconvolve
 from scipy.ndimage import maximum_filter, maximum_filter1d
@@ -32,7 +33,8 @@ def comb_tune(tune_filename, voice_filename, sixteenth_len, num_pulses):
     durations = tune[:, 1]*sixteenth_len
     sr, x = wavfile.read(voice_filename)
     x = np.array(x, dtype=float)/32768
-    y = np.zeros_like(x) # Output audio
+    #y = np.zeros_like(x) # Output audio
+    y = np.array([])
     idx = 0
     for note, d in zip(notes, durations):
         N = int(d*sr)
@@ -43,6 +45,13 @@ def comb_tune(tune_filename, voice_filename, sixteenth_len, num_pulses):
         ## with the appropriate spacing based on note
         ## and place the chunk into the final audio y
         idx += N
+        note = 440*2**(note/12)
+        period = int(sr/note)
+        comb_filter = np.zeros(period*num_pulses+1)
+        comb_filter[0::period] = 1
+        y = np.concatenate((y, fftconvolve(xi, comb_filter)[:N]))
+        
+
     return y, sr
 
 
@@ -159,6 +168,9 @@ def istft(S, w, h, win_fn):
     ## TODO: Fill in y by looping through each STFT window and performing SOLA
     ## NOTE: The jth window can be accessed as S[:, j], 
     ##       and there are S.shape[1] total windows
+    for j in range(S.shape[1]):
+        xj = np.real(np.fft.ifft(S[:, j]))
+        y[h*j:h*j+w] += win_fn(w)*xj
     return y
 
 def specgram_vocoder(tune, voice, sr, w, h, win_fn):
@@ -192,6 +204,10 @@ def specgram_vocoder(tune, voice, sr, w, h, win_fn):
     ## Then, multiply the tune STFT by the voice amplitude
     ## and invert the result into a variable "y" which will
     ## hold the final audio samples
+    STune = stft(tune, w, h, win_fn)
+    SVoice = stft(voice, w, h, win_fn)
+    S = STune*np.abs(SVoice)
+    y = istft(S, w, h, win_fn)
     
     # Apply rudimentary loudness compression
     amp = maximum_filter1d(np.abs(y), int(sr))
@@ -223,6 +239,11 @@ def griffin_lim(SAbs, w, h, win_fn, n_iters):
     S = SAbs
     
     ## TODO: Apply n_iters iterations of the Griffin-Lin algorithm
+    ## to the STFT S
+    for i in range(n_iters):
+        x = istft(S, w, h, win_fn)
+        S = stft(x, w, h, win_fn)
+        S = SAbs*np.exp(1j*np.angle(S))
 
     x = istft(S, w, h, win_fn)
     return np.real(x)
@@ -294,12 +315,17 @@ def im2sound(impath, w, h, win_fn, n_iters):
     S = np.zeros((w, nwin))
     ## TODO: Fill in the spectrogram with the image X
     ## and its mirror image so that the inverse will be real
+    # S = np.flipud(X)
+    S[:X.shape[0], :] = X
+    S[w-X.shape[0]:, :] = np.flipud(X)
+
+
     plt.figure(figsize=(8, 8))
     plt.imshow(S, aspect='auto', cmap='magma_r')
     plt.gca().invert_yaxis()
     plt.xlabel("Window Index")
     plt.ylabel("Frequency Index")
-    plt.savefig("S.png", bbox_inches='tight')
+    #plt.savefig("S.png", bbox_inches='tight')
     return griffin_lim(S, w, h, win_fn, n_iters)
 
 
@@ -334,8 +360,19 @@ def make_beepy_tune(x, w, h, win_fn, time_win, freq_win, max_freq, n_iters):
     y: ndarray(N)
         Beepy tune
     """
-    pass
-    ## TODO: Fill this in
+    S = np.abs(stft(x,w,h,win_fn))
+    orig_shape = S.shape[0]
+    S = S[0:max_freq, :]
+    Maxes = maximum_filter(S, size=(time_win*2+1, freq_win*2+1))
+    S = np.zeros(S.shape)
+    S[Maxes == S] = 1
+    S = S[0:orig_shape, :]
+
+    
+    return griffin_lim(S, w, h, win_fn, n_iters)
+
+
+    
 
 def pitch_shift(x, shift, w, h, win_fn, n_iters):
     """
@@ -382,5 +419,5 @@ def pitch_shift(x, shift, w, h, win_fn, n_iters):
     plt.xlabel("Time Index")
     plt.ylabel("Frequency Index")
     plt.title("Spectrogram Shifted by {} Halfsteps".format(shift))
-    plt.savefig("PitchShift.svg", bbox_inches='tight')
+    #plt.savefig("PitchShift.svg", bbox_inches='tight')
     return x

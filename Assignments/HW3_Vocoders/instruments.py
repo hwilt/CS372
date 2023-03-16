@@ -142,55 +142,17 @@ def brass_env(N, sr):
     -------
     ndarray(N): Envelope samples
     """
-    ## TODO: Fill this in
-    total_seconds = N/44100
-    attack_time = int(0.1*N) # 0.1*N
-    sustain_time = int(N - 3 * attack_time)
-    decay_time = int(0.1*N)
-    release_time = int(N - (0.9*N))
-    
-    #attack = np.linspace(0,1, attack_time)
-    #decay = np.linspace(1,0.75, decay_time)
-    #sustain = np.linspace(0.75, 0.7, sustain_time)
-    #release = np.linspace(0.7,0, release_time)
-    
-    attack = np.array([])
-    decay = np.array([])
-    sustain = np.array([])
-    release = np.array([])
-
-    ## this is for the full one second notes
-    if attack_time + sustain_time + decay_time + release_time >= N:
-        attack = np.linspace(0, 1, attack_time)
-        decay = np.linspace(1,0.75, decay_time)
-        sustain = np.linspace(0.75, 0.7, sustain_time)
-        release = np.linspace(0.7, 0, release_time)
-        return np.concatenate((attack, decay, sustain, release))
-    
-    
-    # there is only time for attack
-    if total_seconds <= 0.1:
-        return np.linspace(0, 1, N)
-    else:
-        attack = np.linspace(0, 1, attack_time)
-    
-    # time for attack and decay
-    
-    if total_seconds <= 0.2:
-        decay = np.linspace(1,0, N - attack_time)
-        return np.concatenate((attack, decay))
-    else:
-        decay = np.linspace(1,0.75, decay_time)
-        
-    # time for attack, decay, and release
-    if total_seconds <= 0.3:
-        release = np.linspace(0.75, 0, N - 2*attack_time)
-        return np.concatenate((attack, decay, release))
-    else:
-        sustain = np.linspace(0.75, 0.70, sustain_time)
-        release = np.linspace(0.70, 0, attack_time)
-        return np.concatenate((attack, decay, sustain, release))
-
+    dur = 0.6
+    env = np.zeros(N)
+    t1 = min(int(dur*sr/6), N)
+    env[0:t1] = np.linspace(0, 1, t1)
+    t2 = min(int(dur*sr/3), N)
+    env[t1:t2] = np.linspace(1, 0.75, (t2-t1))
+    t3 = min(max(int(N-dur*sr/6), t2), N)
+    env[t2:t3] = np.linspace(0.75, 0.7, (t3-t2))
+    t4 = N
+    env[t3:t4] = np.linspace(0.7, 0, (t4-t3))
+    return env
 
 def dirty_bass_env(N, sr):
     """
