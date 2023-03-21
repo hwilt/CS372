@@ -200,3 +200,25 @@ def get_superflux_novfn(x, sr, hop_length=512, win_length=1024, max_win = 1, mu=
     S = np.abs(S)
     S = S[0:S.shape[0]//2+1, :] # Keep only non-redundant frequency bins
     ## TODO: Fill this in
+    # compute mel filterbank with 138 bins from 27.5Hz to 16000Hz
+    MS = get_mel_filterbank(win_length//2+1, win_length, sr, 27.5, 16000, 138)
+    MS = np.dot(MS, S)
+    # convert every element in MS to log10(|MS| + Gamma)
+    MS = np.abs(MS)
+    MS = np.log10(MS + Gamma)
+    
+    # max filter
+    MS = maximum_filter(MS, size=(max_win, 1))
+    
+    # sum of positive differences between mu frames apart
+    M = MS.shape[0]
+    N = MS.shape[1]
+    novfin = np.zeros(N-1)
+    times = np.arange(N-1) * hop_length/sr
+    diff = np.abs(MS[:, mu::] - MS[:, 0:-mu])
+    novfin = np.sum(diff, axis=0)
+
+    #MS = np.sum(np.abs(MS[mu::] - MS[0:-mu]))
+    return novfin
+
+
