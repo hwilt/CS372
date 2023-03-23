@@ -43,7 +43,17 @@ def get_fourier_tempo(novfn, hop_length, sr):
     float: Estimate, in beats per minute, of the tempo
     """
     ## TODO: Fill this in
-    return 0
+    # (cycles/samples) * ((sr/samples)/1 second) * (60 seconds/1 minute) = beats/minute
+    novfn = np.abs(np.fft.fft(novfn))
+    plt.plot(novfn)
+    plt.xlim(0,int(len(novfn)/2))
+    plt.show()
+    max_frequency = np.argmax(novfn[0:int(len(novfn)/2)])
+    #print(max_frequency)
+    #print(samples)
+    return (max_frequency/5156) * (sr/hop_length) * 60
+
+
 
 
 def dft_warped(novfn):

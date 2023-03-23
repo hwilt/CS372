@@ -209,13 +209,13 @@ def get_superflux_novfn(x, sr, hop_length=512, win_length=1024, max_win = 1, mu=
     
     # max filter
     MS = maximum_filter(MS, size=(max_win, 1))
-    
+
     # sum of positive differences between mu frames apart
     M = MS.shape[0]
     N = MS.shape[1]
     novfin = np.zeros(N-1)
-    times = np.arange(N-1) * hop_length/sr
-    diff = np.abs(MS[:, mu::] - MS[:, 0:-mu])
+    diff = MS[:, mu::] - MS[:, 0:-mu]
+    diff[diff < 0] = 0
     novfin = np.sum(diff, axis=0)
 
     #MS = np.sum(np.abs(MS[mu::] - MS[0:-mu]))
