@@ -44,14 +44,18 @@ def get_fourier_tempo(novfn, hop_length, sr):
     """
     ## TODO: Fill this in
     # (cycles/samples) * ((sr/samples)/1 second) * (60 seconds/1 minute) = beats/minute
-    novfn = np.abs(np.fft.fft(novfn))
+    novfn = np.abs(np.fft.fft(novfn))[0:int(len(novfn)/2)]
+    
+    plt.figure(figsize=(10, 4))
     plt.plot(novfn)
-    plt.xlim(0,int(len(novfn)/2))
+    plt.autoscale(enable=True, axis='x', tight=True)
+    #plt.xlim(0,400)
     plt.show()
-    max_frequency = np.argmax(novfn[0:int(len(novfn)/2)])
+    max_frequency = np.argmax(novfn)
     #print(max_frequency)
-    #print(samples)
-    return (max_frequency/5156) * (sr/hop_length) * 60
+    ret = (max_frequency/5156) * (sr/256) * 60
+    print(ret)
+    return ret
 
 
 
