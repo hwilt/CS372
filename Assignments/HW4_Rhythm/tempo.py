@@ -44,21 +44,19 @@ def get_fourier_tempo(novfn, hop_length, sr):
     """
     ## TODO: Fill this in
     # (cycles/samples) * ((sr/samples)/1 second) * (60 seconds/1 minute) = beats/minute
+    novfn = novfn - np.mean(novfn)
     novfn = np.abs(np.fft.fft(novfn))[0:int(len(novfn)/2)]
-    
-    plt.figure(figsize=(10, 4))
-    plt.plot(novfn)
-    plt.autoscale(enable=True, axis='x', tight=True)
+    #plot_graph(x=novfn)
+    #plt.figure(figsize=(10, 4))
+    #plt.plot(novfn)
+    #plt.autoscale(enable=True, axis='x', tight=True)
     #plt.xlim(0,400)
-    plt.show()
+    #plt.show()
     max_frequency = np.argmax(novfn)
     #print(max_frequency)
     ret = (max_frequency/5156) * (sr/256) * 60
-    print(ret)
+    #print(ret)
     return ret
-
-
-
 
 def dft_warped(novfn):
     """
@@ -78,7 +76,25 @@ def dft_warped(novfn):
     dftw = np.zeros_like(dft) # Warped dft to fill in
     ## TODO: Fill this in to warp the samples of f to coincide 
     ## with the samples of an autocorrelation function
+    # dftw[T] = dft[N/T] where N is the length of the dft and T is a shift in the autocorrelation
+    # dftw[T] = (N/T - i1) * dft[i1] + (i2 - N/T) * dft[i2] where i1 and i2 are the indices of the samples
+    # i1 = floor(N/T) and i2 = ceil(N/T)
+    N = len(novfn)
+    dftw[0] = dft[0]
+    # linear interpolation
+    for i in range(1, len(dftw)):
+        T = N/i
+        i1 = np.minimum(N-1, int(np.floor(T)))
+        i2 = np.minimum(N-1, int(np.ceil(T)))
+        dftw[i] = (N/i - i1) * dft[i2] + (i2 - N/i) * dft[i1]
     return dftw
+
+def plot_graph(x):
+    plt.figure(figsize=(10, 4))
+    plt.plot(x)
+    plt.autoscale(enable=True, axis='x', tight=True)
+    plt.xlim(0,400)
+    plt.show()
 
 
 def get_acf_dft_tempo(novfn, hop_length, sr):
@@ -105,7 +121,25 @@ def get_acf_dft_tempo(novfn, hop_length, sr):
     """
     ## TODO: Fill this in to use the product of warped fourier and 
     ## autocorrelation
-    return 0
+    novfn = novfn - np.mean(novfn)
+    autocorrect = autocorr(novfn)
+    #plot_graph(x=autocorrect)
+    # magnitude discrete fourier transform
+    discrete_fourier = np.abs(np.fft.fft(novfn))
+    #plot_graph(x=discrete_fourier)
+
+    # Domain warped discrete fourier transform
+    warped = dft_warped(novfn)
+    #plot_graph(x=warped)
+
+    # Product of warped and autocorrelation
+    product = warped * autocorrect
+    #plot_graph(x=product)
+
+    max_frequency = np.argmax(product[0:len(product)//2+1])
+    #print(max_frequency)
+    ret = 60 * sr / (max_frequency * hop_length)
+    return ret
 
 def evaluate_tempos(f_novfn, f_tempofn, hop_length, tol = 0.08):
     """

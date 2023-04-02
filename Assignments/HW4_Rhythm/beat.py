@@ -67,6 +67,10 @@ def sonify_beats(x, sr, beats, blip_len=0.03):
     """
     y = np.array(x) # Copy x into an array where the beats will be sonified
     ## TODO: Fill this in and add the blips
+    for b in beats:
+        start = int(b*sr)
+        end = int((b+blip_len)*sr)
+        y[start:end] += np.cos(2*np.pi*440*np.arange(end-start)/sr)
     return y
 
 def get_beats(novfn, sr, hop_length, tempo, alpha):
@@ -98,5 +102,26 @@ def get_beats(novfn, sr, hop_length, tempo, alpha):
     beats = []
 
     ## TODO: Fill this in
+    #print(T)
+    for i in range(1,N):
+        if i < T:
+            cscore[i] = cscore[i-2*T] + alpha
+        else:
+            #print(i-T)
+            cscore[i] = np.min(cscore[i-T:i]) + alpha
+            backlink[i] = np.argmin(cscore[i-T:i]) + i-T
+    #print(backlink)
+
+    # Backtrace
+    i = N-1
+    while i > 0:
+        beats.append(i)
+        i = backlink[i]
+    beats = np.array(beats)
+    beats = beats[::-1]
+    beats = beats*hop_length/sr
+
+   
+
 
     return beats
