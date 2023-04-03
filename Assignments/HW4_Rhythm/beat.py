@@ -103,14 +103,27 @@ def get_beats(novfn, sr, hop_length, tempo, alpha):
 
     ## TODO: Fill this in
     #print(T)
+    ## cscore[i] = max(novfn[i] + cscore[i-T/2] - alpha|log((i-j)/T)|^2, novfn[i] + cscore[i-2*T] - alpha|log((i-j)/T)|^2)
+    #for i in range(T, N):
+    #    cscore[i] = max(novfn[i] + cscore[i-T//2] - alpha*((np.log((i-T//2)/T))**2), novfn[i] + cscore[i-2*T] - alpha*((np.log((i-2*T)/T)))**2)
+    #    if cscore[i] == novfn[i] + cscore[i-T//2] - alpha*(np.abs(np.log((i-T//2)/T))**2):
+    #        backlink[i] = i-T//2
+    #    else:
+    #        backlink[i] = i-2*T
+
     for i in range(1,N):
-        if i < T:
+        if i-T//2 > 0:
             cscore[i] = cscore[i-2*T] + alpha
         else:
             #print(i-T)
             cscore[i] = np.min(cscore[i-T:i]) + alpha
             backlink[i] = np.argmin(cscore[i-T:i]) + i-T
-    #print(backlink)
+
+    # plot the cscore
+    """plt.figure()
+    plt.plot(cscore)
+    plt.xlim(0, 400)
+    plt.show()"""
 
     # Backtrace
     i = N-1
