@@ -139,7 +139,7 @@ def make_shepard(n_win, hold):
     # 0, 1, 2, ..., 10, 11, 0, 1, 2, ..., 10, 11, ... in sequence, 
     # holding each note for hold windows, until the end is reached
     # (hint: use the modulo operator %)
-    for i in range(n_win):
+    """for i in range(n_win):
         CS[:,i] = C[:,i%12]
     #
     p = 0
@@ -150,7 +150,12 @@ def make_shepard(n_win, hold):
                 print(p)
             p = 0 if p == 11 else p + 1
         #print(CS[i, :])
-        p = 0
+        p = 0"""
+
+    for i in range(n_win):
+        p = 0 if i%12 == 11 else i%12 + 1
+        for j in range(hold):
+            CS[p, i] = 1
 
 
     print(CS)
